@@ -3,6 +3,7 @@ from SimpleCV import *
 
 cam = Camera()
 
-
-    img = cam.getImage()
-    img.show()
+#while True:
+img = cam.getImage()
+img2 = img.greyscale()
+img2.show()
