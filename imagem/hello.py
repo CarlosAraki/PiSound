@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 from SimpleCV import *
 
-cam = Camera(0,{"width":640 , "height":480})
+cam = Camera(0,{"width":640 , "height":480}) #307.200 pixels
 
 while True:
     arq = open('fifo.txt', 'w')
     img = cam.getImage()
-    gray =  img.grayscale()
+    color =  img.getPixel(0,0) #pego pixel
     gray.show()
 
     x = 1
