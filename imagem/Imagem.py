@@ -15,16 +15,17 @@ while i != 640:
 	j= 0
 	while j !=480:
 		color =  img.getPixel(i,j) #pego pixel
-		#if color[1] > 100 and color[0] < 50 and color[2] < 50:
-		conty = conty +j
-		contx = contx+i
-		a = a+1
+		if color[1] > 50 and color[0] > 50 and color[2] > 50:
+			conty = conty +j
+			contx = contx+i
+			a = a+1
 		j = j+1
 	i = i+1
 # 1 -> 100% 16seg
 #2 -> 100% 10 seg
 # 4 -> 99% 8.69 seg 
-# 8 -> 99% 8.29 seg		
+# 8 -> 99% 8.29 seg	
+#if color[1] > 200 and color[0] > 200 and color[2] > 200: -> se utilizarmos uma mao com luz	
 if a == 0:
 	a = 1
 
