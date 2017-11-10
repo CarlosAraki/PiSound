@@ -1,0 +1,21 @@
+Objetivo:
+    Objetivo do Grupo de imagem é capturar um frame da webcam e escrever na fifo as coordenadas da posição média
+    de um objeto identificado a partir do esquema de cores RGB
+
+
+    Para processamento de imagem utilizaremos a princípio uma resolução de camera 640x480 pixels
+    Rodando o códgo puro, temos que por frame demoramos 16 segundos para analizar todos os pixels
+    Heuristicamente alteramos a verificação pixel a pixel. A melhor resolução sem alterar consideravelmente a
+precisão de um ponto de referência arbitrário foi há de 1/4 da resolução original (160x120)pixels.
+    Com uma precisão de 99% da posição original o tempo adquirido foi de 8.29 seg.
+    Diminuindo a resolução abaixo de 1/4 começamos a ter uma precisão muito baixa em comparação a melhora do tempo de
+processamento de décimos de segundos. O melhor tempo encontrado foi para uma resolução de 4x3 pixels com 8.05 seg.
+    Portanto concluímos que a resolução afeta muito na melhora do tempo , mas precisamos otimizar
+
+
+
+
+
+Modificações:
+    -modificamos os loops de for em while pela facilidade de alterar a amostragem de pixels
+    -
