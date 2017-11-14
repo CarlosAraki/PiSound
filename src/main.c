@@ -8,10 +8,12 @@
 #include "include/csound/csound.h"
 
 //Resolucao da camera
-const int WIDTH;
-const int HEIGHT;
+const int FRAME_WIDTH = 640;
+const int FRAME_HEIGHT = 420;
 //Volume mestre de saida (0 min, 1 max)
-float MASTER_VOLUME;
+float MASTER_VOLUME = 1;
+//Nome da FIFO
+const char fifoName[] = "imgProcessFifo";
 
 /* Estrutura para representar objeto capturado pela camera */
 typedef struct {
@@ -68,6 +70,12 @@ int main(int argc, char** argv) {
     Instrument instr1, instr2;      //Instrumentos
     void *csoundThreadID;           //ID da thread que executara o CSound
     UserData *ud;                   //Estrutura para usar API Csound
+    //Variaveis para fifo e syscall select
+    int fifoFD;                     //File descriptor da FIFO
+    char readBuffer[32];            //Buffer para leitura da FIFO
+    fd_set fdset;                   //Conjunto de FDs
+    struct timeval timeout;         //Tempo de timeout do select
+    int retSelect;                  //Retorno do select
 
     //Inicializa instrumentos
     instrumentInitialize(&instr1);  
@@ -78,7 +86,7 @@ int main(int argc, char** argv) {
     //printConfig();
 
     //Cria FIFO
-    if(mkfifo("imgProcessPipe", 0600)) {
+    if(mkfifo(fifoName, 0600)) {
         if(errno == EEXIST) {
             printf("Erro ao criar pipe - pipe ja existe! Continuando normalmente.\n");
         } else {
@@ -110,22 +118,51 @@ int main(int argc, char** argv) {
     }
     
     /* Loop Principal */
-    //TODO shell interativo para alterar configuracoes
-    int inputFrequency = 440;
-    while(inputFrequency != 0) {
-        //Verifica se ha dados na fifo
-        //Caso houver, lê e realiza computacoes e manda pro cSound
 
-        //
-        /**(instr1.chnPointers[0]) = 1;
-        *(instr1.chnPointers[1]) = 1;
-        *(instr1.chnPointers[2]) = inputFrequency;
-        *(instr1.chnPointers[3]) = 30000;
-        *(instr2.chnPointers[0]) = 1;
-        *(instr2.chnPointers[1]) = 1;
-        *(instr2.chnPointers[2]) = inputFrequency;
-        *(instr2.chnPointers[3]) = 30000;
-        scanf("%d", &inputFrequency);*/
+    //Abre a FIFO
+    fifoFD = open(fifoName, O_RDONLY);
+    if(fifoFD == -1) {
+        printf("Erro na abertura da FIFO!");
+        //Limpar e terminar
+    }
+    while(inputFrequency != 0) {
+        //Coloca a stdin e a fifo no set de fds monitorados pelo select
+        FD_ZERO(&fdset);
+        FD_SET(0, &fdset);
+        FD_SET(fifoFD, &fdset);
+        //Configura timeout
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
+        //Monitora stdin e fifo
+        retSelect = select(fifoFD+1, &fdset, NULL, NULL, &timeout);
+        
+        //Caso ocorra erro no select
+        if(retSelect == -1) {
+            printf("Erro no chamada select!");
+        }
+
+        //Caso algum FD esteja pronto para leitura
+        else if (retSelect) {
+
+            //Caso seja stdin, processa o comando
+            if(FD_ISSET(0, &rfds)) {
+                //Processa comando
+            }
+
+            //Caso seja a fifo, lê e atualiza instrumentos
+            if(FD_ISSET(fifoFD, &rfds)) {
+                if(read(fifoFD, readBuffer, 24) != 24) {
+                    printf("Dados incompletos lidos na FIFO!\n");
+                    //Lidar com isso?
+                } else {
+                    camObjUpdate(&obj1, &obj2, readBuffer);
+                    instrumentUpdate(&instr1, &obj1);
+                    instrumentUpdate(&instr2, &obj2);
+                    instrumentWriteToCsound(instr1);
+                    instrumentWriteToCsound(instr2);
+                }
+            }
+        }
     }
 
     //Finaliza o programa
@@ -141,38 +178,33 @@ uintptr_t perfomanceThread(void *data) {
     UserData* udata = (UserData*)data;
     if(!udata->result) {
         while((csoundPerformKsmps(udata->csound) == 0 && (udata->PERF_STATUS == 1)));
-        csoundDestroy(udata->csound);
+        csoundDestroy(udata->csound);                                                                                                
     }
     udata->PERF_STATUS = 0;
     return 1;
 }
 
-//TODO: Usar parser (?)
-//TODO: Carregar padrao de standard.conf
-//TODO: Implementar carregar arquivo
-//TODO: Implementar criar nova
-void getConfig() {
-    char buffer[8];
-    int opcao;
-    printf("Escolha a configuracao desejada:\n1 - Usar padrao\n2 - Carregar arquivo\n3 - Criar nova\n");
-    scanf("%d", &opcao);
-    
-    //Carrega padrao
-    //No futuro pegar de arquivo standard.conf
-    if(opcao == 1) {
-        printf("Configuracao carregada com sucesso!\n\n");
-        return; 
-    }
 
-    //Implementar outras
-    else exit(0);
-    
+/**************************************
+* FUNCOES RELACIONADAS AOS CAMOBJECTS *
+***************************************/
+
+/* Obtem da array de bytes crus (se tudo estiver certo, 24 bytes)
+ * os valores atualizados para as posicoes e estados dos objetos */
+void camObjUpdate(CamObj* obj1, CamObj* obj2, char* bytes) {
+    //TODO: arrumar essa merda
+    obj1->x = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    obj1->y = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
+    obj1->state = (bytes[8] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[8];
+    obj2->x = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    obj2->y = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
+    obj2->state = (bytes[8] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[8];
+
 }
-
 
 /****************************************
 * FUNCOES RELACIONADAS AOS INSTRUMENTOS *
-****************************************/
+*****************************************/
 
 /* Inicializa um novo instrumento na configuracao padrao */
 void instrumentInitialize(Instrument* instr) {
@@ -187,6 +219,12 @@ void instrumentInitialize(Instrument* instr) {
     instr->masterVolume = 1;
     instr->numOfChannels = sizeof(instrumentChannels)/sizeof(*instrumentChannels);
     instrNumber++;
+}
+
+void instrumentUpdate(Instrument* instr, CamObject* obj) {
+    instr->state = obj->state;
+    instr->frequency = (instr->frequencyRange[1]-instr->frequencyRange[0])*(FRAME_WIDTH/obj->x);
+    instr->amplitude = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(FRAME_HEIGHT/obj->y)*(instr->masterVolume)*MASTER_VOLUME;
 }
 
 /* Obtem ponteiros para comunicacao com CSound e os armazena
