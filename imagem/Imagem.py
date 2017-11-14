@@ -1,10 +1,11 @@
 from SimpleCV import Camera,Image
 import time
+import  sys						#para  argumentos
 							#from SimpleCV import *
 largura = 160						#largura do frame
 altura = 120						#altura  do frame
 cam = Camera(0,{"width":largura ,"height":altura}) 	#original  {"width":640 , "height":480}) #307.200 pixels
-nome_arq = "fifo"					#nome do arquivo
+nome_arq = sys.argv					#nome do arquivo
 							#abrir gravar e fechar arquivo demora 7xE-4s
 
 while True:						#loop de frame a frame
