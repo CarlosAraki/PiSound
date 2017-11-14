@@ -1,6 +1,7 @@
 from SimpleCV import Camera,Image
 import time
 import  sys						#para  argumentos
+import 	os						#para fifo
 							#from SimpleCV import *
 largura = 160						#largura do frame
 altura = 120						#altura  do frame
@@ -53,10 +54,10 @@ while True:						#loop de frame a frame
 #	xr = contxr/ar
 #	yr = contyr/ar
 							#time.sleep(4)
-	arq = open(nome_arq, 'w')			#abrir o arquivo da fifo
-	arq.write("%f %f"%(x,y))	
+							#abrir o arquivo da fifo
+	arq =("%f %f"%(x,y))	
 #	arq.write("%f %f %f %f"%(x,y,xr,yr))		#escrevo x,y do centroide na fifo
-	arq.close()					#fecho o arquivo
+	os.write(nome_arq,arq)				#fecho o arquivo
 	fim = time.time()				#para verificar tempo final
 	tempo  = fim - comeco				#tempo do loop
 	print tempo
