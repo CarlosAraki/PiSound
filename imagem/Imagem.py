@@ -49,8 +49,8 @@ while True:						#loop de frame a frame
 	img.show()
 	x = contx/a					#x do centroide
 	y = conty/a					#y do centroide
-	xr = contxr/ar
-	yr = contyr/ar
+#	xr = contxr/ar
+#	yr = contyr/ar
 							#time.sleep(4)
 	arq = open(nome_arq, 'w')			#abrir o arquivo da fifo
 	arq.write("%f %f"%(x,y))	
