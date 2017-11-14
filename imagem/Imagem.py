@@ -9,7 +9,7 @@ altura = 120						#altura  do frame
 cam = Camera(0,{"width":largura ,"height":altura}) 	#original  {"width":640 , "height":480}) #307.200 pixels
 nome_arq = sys.argv					#nome do arquivo
 							#abrir gravar e fechar arquivo demora 7xE-4s
-print 4
+
 while True:						#loop de frame a frame
 	comeco = time.time()				#tempo inicial
 	img = cam.getImage()				#capturo o frame
