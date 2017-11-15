@@ -8,7 +8,7 @@ largura = 160						#largura do frame
 altura = 120						#altura  do frame
 cam = Camera(0,{"width":largura ,"height":altura}) 	#original  {"width":640 , "height":480}) #307.200 pixels
 nome_arq = sys.argv					#nome do arquivo
-							#abrir gravar e fechar arquivo demora 7xE-4s
+fd = os.open(nome_arq,os.O_RDWR|os.CREAT)		#abrir gravar e fechar arquivo demora 7xE-4s
 
 while True:						#loop de frame a frame
 	comeco = time.time()				#tempo inicial
@@ -56,9 +56,10 @@ while True:						#loop de frame a frame
 #	yr = contyr/ar
 							#time.sleep(4)
 							#abrir o arquivo da fifo
-	arq =("%f %f"%(x,y))	
+	arq =("%f %f"%(x,y))
+	print arq
 #	arq.write("%f %f %f %f"%(x,y,xr,yr))		#escrevo x,y do centroide na fifo
-	os.write(nome_arq,arq)				#fecho o arquivo
+	os.write(fd,arq)				#fecho o arquivo
 	fim = time.time()				#para verificar tempo final
 	tempo  = fim - comeco				#tempo do loop
 	print tempo
