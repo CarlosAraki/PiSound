@@ -8,11 +8,16 @@ largura = 160						#largura do frame
 altura = 120						#altura  do frame
 cam = Camera(0,{"width":largura ,"height":altura}) 	#original  {"width":640 , "height":480}) #307.200 pixels
 nome_arq = sys.argv					#nome do arquivo
+<<<<<<< Updated upstream
 #if nome_arq[1] == false
 #	nome_arq = "fifo"
 nome = nome_arq[1]
 print nome
 fd = os.open(nome,os.O_RDWR)				#abrir gravar e fechar arquivo demora 7xE-4s
+=======
+print nome_arq
+fd = os.open(nome_arq,os.O_RDWR|os.CREAT)		#abrir gravar e fechar arquivo demora 7xE-4s
+>>>>>>> Stashed changes
 
 while True:						#loop de frame a frame
 	comeco = time.time()				#tempo inicial
