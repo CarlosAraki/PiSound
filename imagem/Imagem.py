@@ -78,7 +78,7 @@ def loopdisfarcadoazul(frame,comeco,largura):
 #				img[i,j]=(0,0,255) 	#para ver se esta pegando verde
 			j = j+1
 		i = i+1
-	if a < 30 :					#menor que 30 pixels é zero eruido
+	if a < 30:
 		a = 1 					#se nao encontrar verde retorna -1,-1
 		x = -1
 		y = -1
@@ -104,7 +104,7 @@ def loopdisfarcadoazul2(frame,comeco,largura):
 #				img[i,j]=(0,0,255) 	#para ver se esta pegando verde
 			j = j+1
 		i = i+1
-	if aa2 < 30 :					#menor que 30 pixels é zero eruido
+	if aa2 < 30 :
 		aa2 = 1 					#se nao encontrar verde retorna -1,-1
 		xa2 = -1
 		ya2 = -1
@@ -131,7 +131,7 @@ while True:						#loop de frame a frame
 	t1.start()
 	t2.start()
 	t3.start()
-	[xa1,ya1,aa1]=loopdisfarcadoazul(img)
+	[xa1,ya1,aa1]=loopdisfarcadoazul(img,1,largura/2)
 	t1.join()				#segurador de ordem zero hehehehe
 	t2.join()
 	t3.join()
