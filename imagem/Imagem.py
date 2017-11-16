@@ -4,15 +4,18 @@ import  sys						#para  argumentos
 import 	os						#para fifo
 import threading
 
-global largura = 160						#largura do frame
-global altura = 120
+global largura							#largura do frame
+global altura
 global xv,yv
 								#from SimpleCV import *
-
+largura = 160
+altura = 120
 def loopdisfarcadoverde(frame):
+	global xv,yv
 	contx = 0
 	conty = 0
 	a = 0
+	i = 0
 	while i !=largura:  				#while para 160 pixels (tamanho original 640pixels)
 		j= 0					#contador para rodar colunas em frame
 		while j !=altura:  			#while para 120 pixels (tamanho original 480pixels)
@@ -30,7 +33,7 @@ def loopdisfarcadoverde(frame):
 		a = 1 					#se nao encontrar verde retorna -1,-1
 		contx = -1
 		conty = -1
-	img.show()
+	#img.show()
 	xv = contx/a					#x do centroide
 	yv = conty/a					#y do centroide
 
@@ -38,6 +41,7 @@ def loopdisfarcadoazul(frame):
 	contx = 0
 	conty = 0
 	a = 0
+	i = 0
 	while i !=largura:  				#while para 160 pixels (tamanho original 640pixels)
 		j= 0					#contador para rodar colunas em frame
 		while j !=altura:  			#while para 120 pixels (tamanho original 480pixels)
@@ -49,7 +53,7 @@ def loopdisfarcadoazul(frame):
 				conty = conty+j		#posicao em y
 				contx = contx+i		#posicao em x
 				a = a+1			#area verde
-				img[i,j]=(0,255,0) 	#para ver se esta pegando verde
+				# img[i,j]=(0,255,0) 	#para ver se esta pegando verde
 			j = j+1
 		i = i+1
 	if a == 0:
@@ -67,6 +71,7 @@ cam = Camera(0,{"width":largura ,"height":altura}) 	#original  {"width":640 , "h
 nome_arq = sys.argv					#nome do arquivo
 #if nome_arq[1] == none
 #	nome_arq = "fifo"
+nome = nome_arq[1]
 fd = os.open(nome,os.O_RDWR)				#abrir gravar e fechar arquivo demora 7xE-4s
 
 
