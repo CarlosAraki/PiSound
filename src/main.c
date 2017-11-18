@@ -5,11 +5,14 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <math.h>
+#include <pthread.h>
+#include <python2.7/Python.h>
 #include "include/csound/csound.h"
 
 //Resolucao da camera
-const int FRAME_WIDTH = 640;
-const int FRAME_HEIGHT = 420;
+const float FRAME_WIDTH = 160;
+const float FRAME_HEIGHT = 120;
 //Volume mestre de saida (0 min, 1 max)
 float MASTER_VOLUME = 1;
 //Nome da FIFO
@@ -18,8 +21,8 @@ const char fifoName[] = "imgProcessFifo";
 /* Estrutura para representar objeto capturado pela camera */
 typedef struct {
     int state;  //Estado (0 - Desligado, 1 - Ligado)
-    int x;      //Coord. x
-    int y;      //Coord. y
+    float x;      //Coord. x
+    float y;      //Coord. y
 }CameraObject;
 
 /* Estrutura para os instrumentos 
@@ -38,12 +41,12 @@ typedef struct {
     int activated;              //0 - Desativado, 1 - Ativado
     int state;                  //Estado(0 - Desligado, 1 - Ligado)
     int type;                   //Tipo (0 - seno comum)
-    int frequency;              //Frequencia
-    int frequencyRange[2];      //Faixa de possiveis frequencias
-    int amplitude;              //Amplitude
-    int amplitudeRange[2];      //Faixa de possiveis amplitudes
+    float frequency;            //Frequencia
+    float frequencyRange[2];    //Faixa de possiveis frequencias
+    float amplitude;            //Amplitude
+    float amplitudeRange[2];    //Faixa de possiveis amplitudes
     float masterVolume;         //Volume mestre do instrumento
-    int numOfChannels;    //Numero de canais de comunicacao
+    int numOfChannels;          //Numero de canais de comunicacao
     MYFLT* chnPointers[4];      //Ponteiros para comunicacao com CSound 
 }Instrument;
 
@@ -54,22 +57,26 @@ typedef struct {
     int PERF_STATUS;    //Status da perfomance
 }UserData;
 
-//Funcoes para configuracao dos instrumentos
-void getConfig();
-void printConfig();
+//Funcao executada pela thread que executara o script Python
+void* imgProcessingThread(void *arg);
 //Funcao executada pela thread que executara o CSound
 uintptr_t perfomanceThread(void* clientData);
+//Funcoes relacionados aos CameraObjects
+void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes); 
 //Funcoes relacionadas aos instrumentos
 void instrumentInitialize(Instrument* instr);
+void instrumentUpdate(Instrument* instr, CameraObject* obj); 
 void instrumentGetPointers(Instrument* instr, UserData* ud);
 void instrumentWriteToCSound(Instrument instr);
 
 int main(int argc, char** argv) {
+
+    //Objetos de camera, instrumentos, variaveis para o CSound
     CameraObject obj1, obj2;        //Objetos capturados pela camera
-    int imgProcessPID;              //ID da thread que executara o processamento de imagem
     Instrument instr1, instr2;      //Instrumentos
     void *csoundThreadID;           //ID da thread que executara o CSound
     UserData *ud;                   //Estrutura para usar API Csound
+
     //Variaveis para fifo e syscall select
     int fifoFD;                     //File descriptor da FIFO
     char readBuffer[32];            //Buffer para leitura da FIFO
@@ -77,13 +84,12 @@ int main(int argc, char** argv) {
     struct timeval timeout;         //Tempo de timeout do select
     int retSelect;                  //Retorno do select
 
+    pthread_t imgProcessThreadId;   //Id da thread de processamento de imagem
+    int imgProcessThreadErr;        //Variavel de erro da criacao de threads
+
     //Inicializa instrumentos
     instrumentInitialize(&instr1);  
     instrumentInitialize(&instr2);
-
-    //Obtem configuracao e imprime
-    //getConfig();
-    //printConfig();
 
     //Cria FIFO
     if(mkfifo(fifoName, 0600)) {
@@ -96,8 +102,16 @@ int main(int argc, char** argv) {
     }
 
     /* Inicializacao da thread que processa imagem da webcam */
-    //TODO ISSO
+    imgProcessThreadErr = pthread_create(&imgProcessThreadId, NULL, &imgProcessingThread, NULL);
+    if(imgProcessThreadErr != 0) {
+        //TODO CLEANUP
+        printf("Criacao da thread de processamento de imagem falhou!\n");
+        exit(1);
+    } else {
+        printf("Thread de processamento de imagem criadacom sucesso!\n");
+    }
 
+    //sleep(100);
     /* Inicializacao do CSound */
     //Inicializa objeto CSOUND e compila arquivo csd.
     ud = (UserData*)malloc(sizeof(UserData));
@@ -121,11 +135,12 @@ int main(int argc, char** argv) {
 
     //Abre a FIFO
     fifoFD = open(fifoName, O_RDONLY);
+    int bytes;
     if(fifoFD == -1) {
-        printf("Erro na abertura da FIFO!");
+        printf("Erro na abertura da FIFO!\n");
         //Limpar e terminar
     }
-    while(inputFrequency != 0) {
+    while(1) {
         //Coloca a stdin e a fifo no set de fds monitorados pelo select
         FD_ZERO(&fdset);
         FD_SET(0, &fdset);
@@ -138,28 +153,31 @@ int main(int argc, char** argv) {
         
         //Caso ocorra erro no select
         if(retSelect == -1) {
-            printf("Erro no chamada select!");
+            //TODO: decidir o que fazer
+            printf("Erro no chamada select!\n");
         }
 
         //Caso algum FD esteja pronto para leitura
         else if (retSelect) {
 
             //Caso seja stdin, processa o comando
-            if(FD_ISSET(0, &rfds)) {
+            if(FD_ISSET(0, &fdset)) {
                 //Processa comando
             }
 
             //Caso seja a fifo, lê e atualiza instrumentos
-            if(FD_ISSET(fifoFD, &rfds)) {
-                if(read(fifoFD, readBuffer, 24) != 24) {
-                    printf("Dados incompletos lidos na FIFO!\n");
-                    //Lidar com isso?
+            if(FD_ISSET(fifoFD, &fdset)) {
+                bytes = read(fifoFD, readBuffer, 16);
+                if(bytes != 16) {
+                    //TODO: Lidar com isso?
+                    printf("Dados incompletos! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                 } else {
+                    printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
                     instrumentUpdate(&instr1, &obj1);
                     instrumentUpdate(&instr2, &obj2);
-                    instrumentWriteToCsound(instr1);
-                    instrumentWriteToCsound(instr2);
+                    instrumentWriteToCSound(instr1);
+                    instrumentWriteToCSound(instr2);
                 }
             }
         }
@@ -173,6 +191,93 @@ int main(int argc, char** argv) {
     return 0;
 
 }
+
+/*********************************
+** THREADS DO PYTHON E DO CSOUND *
+**********************************/
+
+//TODO: Cleanup antes de retornar
+void* imgProcessingThread(void *arg) {
+    //Variaveis para chamar script python do processamento de imagem
+    PyObject *pName, *pModule, *pDict, *pFunc, *pArgs, *pValue;
+
+    Py_Initialize();
+    //Importa codigo py da pasta /usr/lib/python2.7
+    pName = PyUnicode_FromString((char*)"Imagem");
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+
+    //Caso carregou com sucesso
+    if (pModule != NULL) {
+        //Obtem funcao mainLoop de Imagem.py
+        pFunc = PyObject_GetAttrString(pModule, "mainLoop");
+
+        //Caso encontrou a funcao
+        if (pFunc && PyCallable_Check(pFunc)) {
+            //Configura argumentos
+            pArgs = PyTuple_New(3);
+
+            //Arg 0 - Nome da FIFO
+            pValue = PyString_FromString(fifoName);
+                if (!pValue) {
+                    Py_DECREF(pArgs);
+                    Py_DECREF(pModule);
+                    fprintf(stderr, "Cannot convert argument 0\n");
+                    exit(1);
+                }
+            PyTuple_SetItem(pArgs, 0, pValue);
+
+            //Arg 1 - Largura do frame
+            pValue = PyLong_FromLong(FRAME_WIDTH);
+                if (!pValue) {
+                    Py_DECREF(pArgs);
+                    Py_DECREF(pModule);
+                    fprintf(stderr, "Cannot convert argument 1\n");
+                    exit(1);
+                }
+            PyTuple_SetItem(pArgs, 1, pValue);
+
+            //Arg 2 - Altura do frame
+            pValue = PyLong_FromLong(FRAME_HEIGHT);
+                if (!pValue) {
+                    Py_DECREF(pArgs);
+                    Py_DECREF(pModule);
+                    fprintf(stderr, "Cannot convert argument 2\n");
+                    exit(1);
+                }
+            PyTuple_SetItem(pArgs, 2, pValue);
+
+            //Chama a funcao
+            pValue = PyObject_CallObject(pFunc, pArgs);
+            Py_DECREF(pArgs);
+            if (pValue != NULL) {
+                printf("Codigo python retornou! Algo errado?\n");
+                Py_DECREF(pValue);
+            }
+            else {
+                Py_DECREF(pFunc);
+                Py_DECREF(pModule);
+                PyErr_Print();
+                fprintf(stderr,"Chamada python falhou\n");
+                exit(1);
+            }
+        }
+        else {
+            if (PyErr_Occurred())
+                PyErr_Print();
+            fprintf(stderr, "Nao encontrou funcao mainLoop");
+        }
+        Py_XDECREF(pFunc);
+        Py_DECREF(pModule);
+    }
+    else {
+        PyErr_Print();
+        fprintf(stderr, "Falha ao carregar modulo");
+        exit(1);
+    }
+    Py_Finalize();    
+}
+
 
 uintptr_t perfomanceThread(void *data) {
     UserData* udata = (UserData*)data;
@@ -191,15 +296,25 @@ uintptr_t perfomanceThread(void *data) {
 
 /* Obtem da array de bytes crus (se tudo estiver certo, 24 bytes)
  * os valores atualizados para as posicoes e estados dos objetos */
-void camObjUpdate(CamObj* obj1, CamObj* obj2, char* bytes) {
-    //TODO: arrumar essa merda
-    obj1->x = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-    obj1->y = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
-    obj1->state = (bytes[8] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[8];
-    obj2->x = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-    obj2->y = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
-    obj2->state = (bytes[8] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[8];
-
+void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
+    if(bytes[0] == '-') {
+        obj1->x = -1;
+        obj1->y = -1;
+        obj1->state = 0;
+    } else {
+        obj1->x = 100*(bytes[0]-'0') + 10*(bytes[1]-'0') + (bytes[2] - '0');
+        obj1->y = 100*(bytes[4]-'0') + 10*(bytes[5]-'0') + (bytes[6] - '0');
+        obj1->state = 1;
+    }
+    if(bytes[7] == '-') {
+        obj2->x = -1;
+        obj2->y = -1;
+        obj2->state = 0;
+    } else {
+        obj2->x = 100*(bytes[8]-'0') + 10*(bytes[9]-'0') + (bytes[10] - '0');
+        obj2->y = 100*(bytes[12]-'0') + 10*(bytes[13]-'0') + (bytes[14] - '0');
+        obj2->state = 1;
+    }
 }
 
 /****************************************
@@ -221,9 +336,14 @@ void instrumentInitialize(Instrument* instr) {
     instrNumber++;
 }
 
-void instrumentUpdate(Instrument* instr, CamObject* obj) {
+/* Atualiza um instrumento baseado num CameraObject */
+void instrumentUpdate(Instrument* instr, CameraObject* obj) {
+    float a,b;
     instr->state = obj->state;
-    instr->frequency = (instr->frequencyRange[1]-instr->frequencyRange[0])*(FRAME_WIDTH/obj->x);
+    if(instr->state == 0) return;
+    a = instr->frequencyRange[0];
+    b = log(instr->frequencyRange[1]/instr->frequencyRange[0]);
+    instr->frequency = a*exp(b*(FRAME_WIDTH/obj->x));
     instr->amplitude = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(FRAME_HEIGHT/obj->y)*(instr->masterVolume)*MASTER_VOLUME;
 }
 
