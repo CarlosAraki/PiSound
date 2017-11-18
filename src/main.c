@@ -136,6 +136,7 @@ int main(int argc, char** argv) {
     //Abre a FIFO
     fifoFD = open(fifoName, O_RDONLY);
     int bytes;
+    readBuffer[16] = '\0';
     if(fifoFD == -1) {
         printf("Erro na abertura da FIFO!\n");
         //Limpar e terminar
@@ -174,8 +175,8 @@ int main(int argc, char** argv) {
                 } else {
                     printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
-                    instrumentUpdate(&instr1, &obj1);
-                    instrumentUpdate(&instr2, &obj2);
+                    instrumentUpdate(&instr1, &obj2);
+                    instrumentUpdate(&instr2, &obj1);
                     instrumentWriteToCSound(instr1);
                     instrumentWriteToCSound(instr2);
                 }
@@ -327,8 +328,8 @@ void instrumentInitialize(Instrument* instr) {
     instr->number = instrNumber;
     instr->activated = 0;
     instr->type = 0;
-    instr->frequencyRange[0] = 440;
-    instr->frequencyRange[1] = 7040;
+    instr->frequencyRange[0] = 300;
+    instr->frequencyRange[1] = 600;
     instr->amplitudeRange[0] = 0;
     instr->amplitudeRange[1] = 30000;
     instr->masterVolume = 1;

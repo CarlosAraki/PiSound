@@ -30,6 +30,7 @@ def loopdisfarcadoverde(frame,comeco,largura):
 				yv1 = yv1+j		#posicao em y
 				xv1 = xv1+i		#posicao em x
 				av1 = av1+1			#area verde
+#				del img[i,j]
 			j = j+1
 		i = i+1
 	if av1 < 30:
@@ -53,6 +54,7 @@ def loopdisfarcadoverde2(frame,comeco,largura):
 				yv2 = yv2+j		#posicao em y
 				xv2 = xv2+i		#posicao em x
 				av2 = av2+1			#area verde
+#				del img[i,j]
 			j = j+1
 		i = i+1
 	if av2 < 30:
@@ -76,6 +78,7 @@ def loopdisfarcadoazul(frame,comeco,largura):
 				y = y+j		#posicao em y
 				x = x+i		#posicao em x
 				a = a+1			#area verde
+#				img[i,j]=(0,0,255) 	#para ver se esta pegando verde
 			j = j+1
 		i = i+1
 	if a < 30:
@@ -101,6 +104,7 @@ def loopdisfarcadoazul2(frame,comeco,largura):
 				ya2 = ya2+j		#posicao em y
 				xa2 = xa2+i		#posicao em x
 				aa2 = aa2+1			#area verde
+#				img[i,j]=(0,0,255) 	#para ver se esta pegando verde
 			j = j+1
 		i = i+1
 	if aa2 < 30 :
