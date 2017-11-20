@@ -71,6 +71,7 @@ endin
 f 1 0 16384 10 1
 ; Toca o instrumento #1 por 2 segundos, começando em 0 segundos
 i 1 0 120
+;i 2 0 120
 e
 </CsScore>
 </CsoundSynthesizer> 

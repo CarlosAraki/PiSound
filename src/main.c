@@ -53,8 +53,8 @@ typedef struct {
 }UserData;
 
 //Resolucao da camera
-const float FRAME_WIDTH = 160;
-const float FRAME_HEIGHT = 120;
+const float FRAME_WIDTH = 176;
+const float FRAME_HEIGHT = 144;
 //CameraObjects e instrumentos
 CameraObject obj1, obj2;        //Objetos capturados pela camera
 Instrument instr1, instr2;      //Instrumentos
@@ -80,7 +80,7 @@ void instrumentPrint(Instrument instr);
 
 //Tratamento de comandos
 void handleSetInstrPI(char* instr, char* param, int val);
-void handleSetInstrPII(char* instr, char* param, int val1, int val2);
+void handleSetInstrPFF(char* instr, char* param, float val1, float val2);
 void handleSetInstrPF(char* instr, char* param, float val);
 void handleSetPF(char* param, float val);
 void handlePrintP(char* param);
@@ -200,8 +200,8 @@ int main(int argc, char** argv) {
                 } else {
                     //printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
-                    instrumentUpdate(&instr1, &obj2);
-                    instrumentUpdate(&instr2, &obj1);
+                    instrumentUpdate(&instr1, &obj1);
+                    instrumentUpdate(&instr2, &obj2);
                     instrumentWriteToCSound(instr1);
                     instrumentWriteToCSound(instr2);
                 }
@@ -341,15 +341,16 @@ void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
         obj1->y = 100*(bytes[4]-'0') + 10*(bytes[5]-'0') + (bytes[6] - '0');
         obj1->state = 1;
     }
-    if(bytes[7] == '-') {
+    if(bytes[8] == '-') {
         obj2->x = -1;
         obj2->y = -1;
         obj2->state = 0;
     } else {
-        obj2->x = 100*(bytes[8]-'0') + 10*(bytes[9]-'0') + (bytes[10] - '0');
-        obj2->y = 100*(bytes[12]-'0') + 10*(bytes[13]-'0') + (bytes[14] - '0');
+        obj2->x = 100*(bytes[9]-'0') + 10*(bytes[10]-'0') + (bytes[11] - '0');
+        obj2->y = 100*(bytes[13]-'0') + 10*(bytes[14]-'0') + (bytes[15] - '0');
         obj2->state = 1;
     }
+    printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
 }
 
 /* Imprime parametros do CameraObject */
@@ -385,9 +386,10 @@ void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     instr->state = obj->state;
     if(instr->state == 0) return;
     a = instr->frequencyRange[0];
-    b = log(instr->frequencyRange[1]/instr->frequencyRange[0]);
-    instr->frequency = a*exp(b*(FRAME_WIDTH/obj->x));
-    instr->amplitude = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(FRAME_HEIGHT/obj->y)*(instr->masterVolume)*MASTER_VOLUME;
+    b = log(instr->frequencyRange[1]/instr->frequencyRange[0])/FRAME_WIDTH;
+    instr->frequency = a*exp(b*obj->x);
+    instr->amplitude = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(obj->y/FRAME_HEIGHT)*(instr->masterVolume)*MASTER_VOLUME;
+    //printf("Frequencia: %f, amplitude: %f", instr->frequency, instr->amplitude);
 }
 
 /* Obtem ponteiros para comunicacao com CSound e os armazena

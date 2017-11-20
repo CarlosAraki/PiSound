@@ -10,8 +10,8 @@ global xv1,yv1,av1
 global xv2,yv2,av2
 global xa2,ya2,aa2
 
-largura = 160
-altura = 120
+largura = 176
+altura = 144
 								#from SimpleCV import *
 def loopdisfarcadoverde(frame,comeco,largura):
 	global xv1,yv1,av1
@@ -32,7 +32,7 @@ def loopdisfarcadoverde(frame,comeco,largura):
 				av1 = av1+1			#area verde
 			j = j+1
 		i = i+1
-	if av1 < 30:
+	if av1 < 5:
 		av1 = 1 					#se nao encontrar verde retorna -1,-1
 		xv1 = -1
 		yv1 = -1
@@ -55,7 +55,7 @@ def loopdisfarcadoverde2(frame,comeco,largura):
 				av2 = av2+1			#area verde
 			j = j+1
 		i = i+1
-	if av2 < 30:
+	if av2 < 5:
 		av2 = 1 					#se nao encontrar verde retorna -1,-1
 		xv2 = -1
 		yv2 = -1
@@ -71,14 +71,14 @@ def loopdisfarcadoazul(frame,comeco,largura):
 			color =  frame[i][j]     	#pego pixel em posicao i,j
 			dif2 = int(color[1])-int(color[2]) 	#diferenca do G - R
 			dif3 = int(color[0])-int(color[2])	#diferenca do G - B
-			if color[2] > color[1] and color[2] > color[0] and dif2 < -5 and dif3 < -5:
+			if color[2] > color[1] and color[2] > color[0] and dif2 < -15 and dif3 < -15:
 							#G>R && G>B && dif>5 && dif2>5
 				y = y+j		#posicao em y
 				x = x+i		#posicao em x
 				a = a+1			#area verde
 			j = j+1
 		i = i+1
-	if a < 30:
+	if a < 5:
 		a = 1 					#se nao encontrar verde retorna -1,-1
 		x = -1
 		y = -1
@@ -96,14 +96,14 @@ def loopdisfarcadoazul2(frame,comeco,largura):
 			color =  frame[i][j] 	#pego pixel em posicao i,j
 			dif2 = int(color[1])-int(color[2]) 	#diferenca do G - R
 			dif3 = int(color[0])-int(color[2])	#diferenca do G - B
-			if color[2] > color[1] and color[2] > color[0] and dif2 < -5 and dif3 < -5:
+			if color[2] > color[1] and color[2] > color[0] and dif2 < -15 and dif3 < -15:
 							#G>R && G>B && dif>5 && dif2>5
 				ya2 = ya2+j		#posicao em y
 				xa2 = xa2+i		#posicao em x
 				aa2 = aa2+1			#area verde
 			j = j+1
 		i = i+1
-	if aa2 < 30 :
+	if aa2 < 5 :
 		aa2 = 1 					#se nao encontrar verde retorna -1,-1
 		xa2 = -1
 		ya2 = -1
@@ -119,13 +119,15 @@ def conv3Dig(number):
         numString = ("00%d" %number)
     elif(number<100):
         numString = ("0%d" %number)
+    elif(number>=100):
+        numString = ("%d" %number)
 
     return numString
 
 def mainLoop(fifoName,aLargura, aAltura):
     largura = aLargura
     altura = aAltura
-    cam = cv2.VideoCapture(0)                        	
+    cam = cv2.VideoCapture(1)                        	
     cam.set(4,largura)
     cam.set(5,altura)
     nome = fifoName
@@ -150,6 +152,7 @@ def mainLoop(fifoName,aLargura, aAltura):
             yv = (yv1+yv2)/(av1+av2)
             xa = (xa1+xa2)/(aa1+aa2)
             ya =(ya1+ya2)/(aa1+aa2)
+            print xv,yv,xa,ya
                                                                     
             arq =("%s %s %s %s "%(conv3Dig(xv),conv3Dig(yv),conv3Dig(xa),conv3Dig(ya)))
             os.write(fd,arq)

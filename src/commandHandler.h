@@ -1,5 +1,5 @@
 void handleSetInstrPI(char* instr, char* param, int val);
-void handleSetInstrPII(char* instr, char* param, int val1, int val2);
+void handleSetInstrPFF(char* instr, char* param, float val1, float val2);
 void handleSetInstrPF(char* instr, char* param, float val);
 void handleSetPF(char* param, float val);
 void handlePrintP(char* param);
