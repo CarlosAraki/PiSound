@@ -1,0 +1,11 @@
+void handleSetInstrPI(char* instr, char* param, int val);
+void handleSetInstrPII(char* instr, char* param, int val1, int val2);
+void handleSetInstrPF(char* instr, char* param, float val);
+void handleSetPF(char* param, float val);
+void handlePrintP(char* param);
+void handlePrintInstr(char* instr);
+void handlePrintInstrP(char* instr, char* param);
+void handlePrintCamobj(char* camobj);
+void handlePrintCamobjP(char* camobj, char* param);
+void handleHelp();
+void handleExit();

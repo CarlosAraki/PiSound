@@ -9,20 +9,15 @@
 #include <pthread.h>
 #include <python2.7/Python.h>
 #include "include/csound/csound.h"
+#include "y.tab.h"
 
-//Resolucao da camera
-const float FRAME_WIDTH = 160;
-const float FRAME_HEIGHT = 120;
-//Volume mestre de saida (0 min, 1 max)
-float MASTER_VOLUME = 1;
-//Nome da FIFO
-const char fifoName[] = "imgProcessFifo";
 
 /* Estrutura para representar objeto capturado pela camera */
 typedef struct {
+    int number; //Numero do cameraObject
     int state;  //Estado (0 - Desligado, 1 - Ligado)
-    float x;      //Coord. x
-    float y;      //Coord. y
+    float x;    //Coord. x
+    float y;    //Coord. y
 }CameraObject;
 
 /* Estrutura para os instrumentos 
@@ -57,23 +52,48 @@ typedef struct {
     int PERF_STATUS;    //Status da perfomance
 }UserData;
 
+//Resolucao da camera
+const float FRAME_WIDTH = 160;
+const float FRAME_HEIGHT = 120;
+//CameraObjects e instrumentos
+CameraObject obj1, obj2;        //Objetos capturados pela camera
+Instrument instr1, instr2;      //Instrumentos
+//Volume mestre de saida (0 min, 1 max)
+float MASTER_VOLUME = 1;
+//Nome da FIFO
+const char fifoName[] = "imgProcessFifo";
+
 //Funcao executada pela thread que executara o script Python
 void* imgProcessingThread(void *arg);
 //Funcao executada pela thread que executara o CSound
 uintptr_t perfomanceThread(void* clientData);
 //Funcoes relacionados aos CameraObjects
+void camObjInitialize(CameraObject* obj);
 void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes); 
+void camObjPrint(CameraObject obj);
 //Funcoes relacionadas aos instrumentos
 void instrumentInitialize(Instrument* instr);
 void instrumentUpdate(Instrument* instr, CameraObject* obj); 
 void instrumentGetPointers(Instrument* instr, UserData* ud);
 void instrumentWriteToCSound(Instrument instr);
+void instrumentPrint(Instrument instr);
+
+//Tratamento de comandos
+void handleSetInstrPI(char* instr, char* param, int val);
+void handleSetInstrPII(char* instr, char* param, int val1, int val2);
+void handleSetInstrPF(char* instr, char* param, float val);
+void handleSetPF(char* param, float val);
+void handlePrintP(char* param);
+void handlePrintInstr(char* instr);
+void handlePrintInstrP(char* instr, char* param);
+void handlePrintCamobj(char* camobj);
+void handlePrintCamobjP(char* camobj, char* param);
+void handleHelp();
+void handleExit();
 
 int main(int argc, char** argv) {
 
     //Objetos de camera, instrumentos, variaveis para o CSound
-    CameraObject obj1, obj2;        //Objetos capturados pela camera
-    Instrument instr1, instr2;      //Instrumentos
     void *csoundThreadID;           //ID da thread que executara o CSound
     UserData *ud;                   //Estrutura para usar API Csound
 
@@ -90,6 +110,9 @@ int main(int argc, char** argv) {
     //Inicializa instrumentos
     instrumentInitialize(&instr1);  
     instrumentInitialize(&instr2);
+    //Inicializa CameraObjects
+    camObjInitialize(&obj1);
+    camObjInitialize(&obj2);
 
     //Cria FIFO
     if(mkfifo(fifoName, 0600)) {
@@ -163,7 +186,9 @@ int main(int argc, char** argv) {
 
             //Caso seja stdin, processa o comando
             if(FD_ISSET(0, &fdset)) {
-                //Processa comando
+                if(yyparse()) {
+                    printf("Comando nao reconhecido! Digite \"help\" para obter ajuda.\n");
+                }
             }
 
             //Caso seja a fifo, lê e atualiza instrumentos
@@ -173,7 +198,7 @@ int main(int argc, char** argv) {
                     //TODO: Lidar com isso?
                     printf("Dados incompletos! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                 } else {
-                    printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
+                    //printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
                     instrumentUpdate(&instr1, &obj2);
                     instrumentUpdate(&instr2, &obj1);
@@ -295,6 +320,15 @@ uintptr_t perfomanceThread(void *data) {
 * FUNCOES RELACIONADAS AOS CAMOBJECTS *
 ***************************************/
 
+/* Inicializa CameraObject */
+void camObjInitialize(CameraObject* obj) {
+    static int number = 1;
+    obj->number = number;
+    obj->state = 1;
+    obj->x = 0;
+    obj->y = 0;
+}
+
 /* Obtem da array de bytes crus (se tudo estiver certo, 24 bytes)
  * os valores atualizados para as posicoes e estados dos objetos */
 void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
@@ -318,6 +352,13 @@ void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
     }
 }
 
+/* Imprime parametros do CameraObject */
+void camObjPrint(CameraObject obj) {
+    printf("CAMERAOBJECT %d:\n", obj.number);
+    printf("Estado: %d\n", obj.state);
+    printf("(x,y): (%.1f, %.1f)\n\n", obj.x, obj.y);
+}
+
 /****************************************
 * FUNCOES RELACIONADAS AOS INSTRUMENTOS *
 *****************************************/
@@ -327,6 +368,7 @@ void instrumentInitialize(Instrument* instr) {
     static int instrNumber = 1;
     instr->number = instrNumber;
     instr->activated = 0;
+    instr->state = 0;
     instr->type = 0;
     instr->frequencyRange[0] = 300;
     instr->frequencyRange[1] = 600;
@@ -384,6 +426,183 @@ void instrumentWriteToCSound(Instrument instr) {
     *(instr.chnPointers[3]) = (MYFLT)instr.amplitude;
 }
 
+/* Imprime todos os parametros do instrumento */
+void instrumentPrint(Instrument instr) {
+    printf("INSTRUMENTO %d:\n", instr.number);
+    printf("Ativado: %d\n", instr.activated);
+    printf("Estado: %d\n", instr.state);
+    printf("Tipo: %d\n", instr.type);
+    printf("Intervalo de frequencias: %f-%f\n", instr.frequencyRange[0], instr.frequencyRange[1]);
+    printf("Intervalo de amplitude: %f-%f\n", instr.amplitudeRange[0], instr.amplitudeRange[1]);
+    printf("Volume mestre: %f\n\n", instr.masterVolume);
+}
 
 
-                                            
+/*************************
+* TRATAMENTO DE COMANDOS *
+**************************/
+void handleSetInstrPI(char* instr, char* param, int val) {
+    Instrument instrument;
+
+    if(!strcmp(instr, "instr1")) {
+        instrument = instr1;
+    }
+    else if(!strcmp(instr, "instr2")) {
+        instrument = instr2;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
+    }
+
+    if(!strcmp(param, "activated")) {
+        instrument.state = val;
+    }
+    else if(!strcmp(param, "type")) {
+        instrument.type = val;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
+    }
+}
+
+void handleSetInstrPFF(char* instr, char* param, float val1, float val2) {
+    Instrument instrument;
+
+    if(!strcmp(instr, "instr1")) {
+        instrument = instr1;
+    }
+    else if(!strcmp(instr, "instr2")) {
+        instrument = instr2;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
+    }
+
+    if(!strcmp(param, "freqrange")) {
+        instrument.frequencyRange[0] = val1;
+        instrument.frequencyRange[1] = val2;
+    }
+    else if(!strcmp(param, "amplrange")) {
+        instrument.amplitudeRange[0] = val1;
+        instrument.amplitudeRange[1] = val2;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [freqrange|amplrange] [int] [int]\n");
+    }
+}
+
+void handleSetInstrPF(char* instr, char* param, float val) {
+    Instrument* instrument;
+
+    if(!strcmp(instr, "instr1")) {
+        instrument = &instr1;
+    }
+    else if(!strcmp(instr, "instr2")) {
+        instrument = &instr2;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
+    }
+
+    if(!strcmp(param, "mvolume") && val > 0 && val < 1) {
+        printf("olha só");
+        instrument->masterVolume = val;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] mvolume [0-1]\n");
+    }
+}
+
+void handleSetPF(char* param, float val) {
+    if(!strcmp(param, "mvolume") && val > 0 && val < 1) {
+        MASTER_VOLUME = val;
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: set mvolume [0-1]\n");
+    }
+}
+
+void handlePrintP(char* param) {
+    if(!strcmp(param, "mvolume")) {
+        printf("Master volume: %f", MASTER_VOLUME);
+    }
+    else if(!strcmp(param, "fsize")) {
+        printf("Largura do frame: %f, Altura do frame: %f\n", FRAME_WIDTH, FRAME_HEIGHT);
+    }
+    else if(!strcmp(param, "all")) {
+        printf("Largura do frame: %f, Altura do frame: %f\n", FRAME_WIDTH, FRAME_HEIGHT);
+        printf("Master volume: %f\n\n", MASTER_VOLUME);
+        camObjPrint(obj1);
+        camObjPrint(obj2);
+        instrumentPrint(instr1);
+        instrumentPrint(instr2);
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: print [mvolume|fsize|all]\n");
+    }
+}
+
+void handlePrintInstr(char* instr) {
+    if(!strcmp(instr, "instr1")) {
+        instrumentPrint(instr1);
+    }
+    else if(!strcmp(instr, "instr2")) {
+        instrumentPrint(instr2);
+    }
+    else {
+        printf("Comando nao reconhedo!\nSintaxe: print instr[1-2]\n");
+    }
+}
+
+//TODO: imprimir parametro
+void handlePrintInstrP(char* instr, char* param) {
+    Instrument instrument;
+
+    if(!strcmp(instr, "instr1")) {
+        instrument = instr1;
+    }
+    else if(!strcmp(instr, "instr2")) {
+        instrument = instr2;
+    }
+
+    printf("TODO\n");
+
+
+}
+
+void handlePrintCamobj(char* camobj) {
+    if(!strcmp(camobj, "camobj1")) {
+        camObjPrint(obj1);
+    }
+    else if(!strcmp(camobj, "camobj2")) {
+        camObjPrint(obj2);
+    }
+    else {
+        printf("Comando nao reconhecido!\nSintaxe: print camobj[1-2]\n");
+    }
+}
+
+//TODO: imprimir parametro
+void handlePrintCamobjP(char* camobj, char* param) {
+    printf("TODO\n");
+
+}
+
+//TODO: string de help
+void handleHelp() {
+    printf("Logo teremos um help kkkk\n");
+}
+
+//TODO: saida limpa
+void handleExit() {
+    printf("Para sair digite ctrl+c! Uma saida limpa ainda está sendo preparada.\n");
+}
+
+
+
+
+
+
+
+
+
