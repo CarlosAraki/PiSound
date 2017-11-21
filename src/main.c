@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 
     //Obtem ponteiros para comunicacao com o Csound
     instrumentGetPointers(&instr1, ud);
-    instrumentGetPointers(&instr2, ud);
+    //instrumentGetPointers(&instr2, ud);
 
     //Caso a compilacao ocorreu com sucesso, cria um novo thread para rodar a aplicacao
     if(!ud->result) {
@@ -200,9 +200,9 @@ int main(int argc, char** argv) {
                     printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
                     instrumentUpdate(&instr1, &obj1);
-                    instrumentUpdate(&instr2, &obj2);
+                    //instrumentUpdate(&instr2, &obj2);
                     instrumentWriteToCSound(instr1);
-                    instrumentWriteToCSound(instr2);
+                    //instrumentWriteToCSound(instr2);
                 }
             }
         }
@@ -370,6 +370,8 @@ void instrumentInitialize(Instrument* instr) {
     instr->activated = 0;
     instr->state = 0;
     instr->type = 0;
+    instr->frequency = 0;
+    instr->amplitude = 0;
     instr->frequencyRange[0] = 300;
     instr->frequencyRange[1] = 600;
     instr->amplitudeRange[0] = 0;
