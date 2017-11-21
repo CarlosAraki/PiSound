@@ -10,8 +10,7 @@ exit    (exit)
 instr   (instr)[1-2]
 camObj  (camobj)[1-2]
 param   [a-zA-Z]+
-int     [0-9]+
-float   [0-9]+.[0-9]+
+num     [0-9]+(.[0-9]+)?
 nl      \n
 none    .
 %%
@@ -35,13 +34,9 @@ none    .
              return PARAM;
             }
 
-{int}       {
-             sscanf(yytext, "%d", yylval.integer);
-             return INT;
-            }
-{float}     {
-             sscanf(yytext, "%f", yylval.floating);
-             return FLOAT;
+{num}       {
+             sscanf(yytext, "%f", &yylval.floating);
+             return NUM;
             }
 {nl}        {return NL;}
 

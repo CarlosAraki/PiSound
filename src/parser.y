@@ -6,7 +6,6 @@
 
 %union {
     char text[128];
-    int integer;
     float floating;
 }
 %token SET
@@ -16,8 +15,7 @@
 %token <text> INSTR
 %token <text> CAMOBJ
 %token <text> PARAM
-%token <integer> INT
-%token <floating> FLOAT
+%token <floating> NUM
 %token NL
 
 %%
@@ -27,10 +25,9 @@ line:           NL {return 0;}
                 | helpCommand NL  {return 0;} 
                 | exitCommand NL  {return 0;}
 
-setCommand:     SET INSTR PARAM INT         {handleSetInstrPI($2, $3, $4);}
-                | SET INSTR PARAM FLOAT FLOAT   {handleSetInstrPFF($2, $3, $4, $5);}
-                | SET INSTR PARAM FLOAT     {handleSetInstrPF($2, $3, $4);}
-                | SET PARAM FLOAT           {handleSetPF($2, $3);}
+setCommand:     SET INSTR PARAM NUM NUM     {handleSetInstrPFF($2, $3, $4, $5);}
+                | SET INSTR PARAM NUM       {handleSetInstrPF($2, $3, $4);}
+                | SET PARAM NUM             {handleSetPF($2, $3);}
 
 printCommand:   PRINT PARAM          {handlePrintP($2);}
                 | PRINT INSTR        {handlePrintInstr($2);}

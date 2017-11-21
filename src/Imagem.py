@@ -152,7 +152,7 @@ def mainLoop(fifoName,aLargura, aAltura):
             yv = (yv1+yv2)/(av1+av2)
             xa = (xa1+xa2)/(aa1+aa2)
             ya =(ya1+ya2)/(aa1+aa2)
-            print xv,yv,xa,ya
+            #print xv,yv,xa,ya
                                                                     
             arq =("%s %s %s %s "%(conv3Dig(xv),conv3Dig(yv),conv3Dig(xa),conv3Dig(ya)))
             os.write(fd,arq)

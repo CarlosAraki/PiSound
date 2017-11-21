@@ -79,7 +79,6 @@ void instrumentWriteToCSound(Instrument instr);
 void instrumentPrint(Instrument instr);
 
 //Tratamento de comandos
-void handleSetInstrPI(char* instr, char* param, int val);
 void handleSetInstrPFF(char* instr, char* param, float val1, float val2);
 void handleSetInstrPF(char* instr, char* param, float val);
 void handleSetPF(char* param, float val);
@@ -350,7 +349,7 @@ void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
         obj2->y = 100*(bytes[13]-'0') + 10*(bytes[14]-'0') + (bytes[15] - '0');
         obj2->state = 1;
     }
-    printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
+    //printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
 }
 
 /* Imprime parametros do CameraObject */
@@ -383,8 +382,11 @@ void instrumentInitialize(Instrument* instr) {
 /* Atualiza um instrumento baseado num CameraObject */
 void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     float a,b;
-    instr->state = obj->state;
-    if(instr->state == 0) return;
+    if(instr->activated == 0) {
+        instr->state = 0;
+    } else {
+        instr->state = obj->state;
+    }
     a = instr->frequencyRange[0];
     b = log(instr->frequencyRange[1]/instr->frequencyRange[0])/FRAME_WIDTH;
     instr->frequency = a*exp(b*obj->x);
@@ -434,65 +436,15 @@ void instrumentPrint(Instrument instr) {
     printf("Ativado: %d\n", instr.activated);
     printf("Estado: %d\n", instr.state);
     printf("Tipo: %d\n", instr.type);
-    printf("Intervalo de frequencias: %f-%f\n", instr.frequencyRange[0], instr.frequencyRange[1]);
-    printf("Intervalo de amplitude: %f-%f\n", instr.amplitudeRange[0], instr.amplitudeRange[1]);
-    printf("Volume mestre: %f\n\n", instr.masterVolume);
+    printf("Intervalo de frequencias: %.1f-%.1f\n", instr.frequencyRange[0], instr.frequencyRange[1]);
+    printf("Intervalo de amplitude: %.1f-%.1f\n", instr.amplitudeRange[0], instr.amplitudeRange[1]);
+    printf("Volume mestre: %.1f\n\n", instr.masterVolume);
 }
 
 
 /*************************
 * TRATAMENTO DE COMANDOS *
 **************************/
-void handleSetInstrPI(char* instr, char* param, int val) {
-    Instrument instrument;
-
-    if(!strcmp(instr, "instr1")) {
-        instrument = instr1;
-    }
-    else if(!strcmp(instr, "instr2")) {
-        instrument = instr2;
-    }
-    else {
-        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
-    }
-
-    if(!strcmp(param, "activated")) {
-        instrument.state = val;
-    }
-    else if(!strcmp(param, "type")) {
-        instrument.type = val;
-    }
-    else {
-        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
-    }
-}
-
-void handleSetInstrPFF(char* instr, char* param, float val1, float val2) {
-    Instrument instrument;
-
-    if(!strcmp(instr, "instr1")) {
-        instrument = instr1;
-    }
-    else if(!strcmp(instr, "instr2")) {
-        instrument = instr2;
-    }
-    else {
-        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
-    }
-
-    if(!strcmp(param, "freqrange")) {
-        instrument.frequencyRange[0] = val1;
-        instrument.frequencyRange[1] = val2;
-    }
-    else if(!strcmp(param, "amplrange")) {
-        instrument.amplitudeRange[0] = val1;
-        instrument.amplitudeRange[1] = val2;
-    }
-    else {
-        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [freqrange|amplrange] [int] [int]\n");
-    }
-}
-
 void handleSetInstrPF(char* instr, char* param, float val) {
     Instrument* instrument;
 
@@ -503,24 +455,56 @@ void handleSetInstrPF(char* instr, char* param, float val) {
         instrument = &instr2;
     }
     else {
-        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] [state|type] [int]\n");
+        printf("Comando nao reconhecido! Sintaxe: set instr[1-2] [state|type|mvolume] [0-1]\n");
     }
 
-    if(!strcmp(param, "mvolume") && val > 0 && val < 1) {
-        printf("olha só");
+    if(!strcmp(param, "mvolume") && val >= 0 && val <= 1) {
         instrument->masterVolume = val;
     }
+    else if(!strcmp(param, "activated")) {
+        instrument->activated = (int)val;
+    }
+    else if(!strcmp(param, "type")) {
+        instrument->type = (int)val;
+    }
     else {
-        printf("Comando nao reconhecido!\nSintaxe: set instr[1-2] mvolume [0-1]\n");
+        printf("Comando nao reconhecido! Sintaxe: set instr[1-2] [state|type|mvolume] [0-1]\n");
     }
 }
 
+void handleSetInstrPFF(char* instr, char* param, float val1, float val2) {
+    Instrument* instrument;
+
+    if(!strcmp(instr, "instr1")) {
+        instrument = &instr1;
+    }
+    else if(!strcmp(instr, "instr2")) {
+        instrument = &instr2;
+    }
+    else {
+        printf("Comando nao reconhecido! Sintaxe: set instr[1-2] [freqrange|amplrange] [float] [float]\n");
+    }
+
+    if(!strcmp(param, "freqrange")) {
+        instrument->frequencyRange[0] = val1;
+        instrument->frequencyRange[1] = val2;
+    }
+    else if(!strcmp(param, "amplrange")) {
+        instrument->amplitudeRange[0] = val1;
+        instrument->amplitudeRange[1] = val2;
+    }
+    else {
+        printf("Comando nao reconhecido! Sintaxe: set instr[1-2] [freqrange|amplrange] [float] [float]\n");
+    }
+}
+
+
 void handleSetPF(char* param, float val) {
-    if(!strcmp(param, "mvolume") && val > 0 && val < 1) {
+    if(!strcmp(param, "mvolume") && val >= 0 && val <= 1) {
         MASTER_VOLUME = val;
     }
     else {
-        printf("Comando nao reconhecido!\nSintaxe: set mvolume [0-1]\n");
+        printf("Comando nao reconhecido! Sintaxe: set mvolume [0-1]\n");
     }
 }
 

@@ -34,7 +34,10 @@ instr 1
     a1 oscil kAmp, kFreq, ifn
   
    ;Manda o som armazenado em a1 para a saida de audio 
-    out a1
+    if (kState == 1) then 
+        a1 oscil kAmp, kFreq, ifn
+        out a1
+    endif
 endin
 
 ;Instrumento #2.
@@ -59,10 +62,12 @@ instr 2
     ifn = 1
     ;Toca com amplitude 30000 e frequência de gkFreq Hz a onda do seno
     ;armazenada na tabela 1.
-    a1 oscil kAmp, kFreq, ifn
   
    ;Manda o som armazenado em a1 para a saida de audio 
-    out a1
+    if (kState == 1) then 
+        a1 oscil kAmp, kFreq, ifn
+        out a1
+    endif
 endin
 
 </CsInstruments>
@@ -71,7 +76,7 @@ endin
 f 1 0 16384 10 1
 ; Toca o instrumento #1 por 2 segundos, começando em 0 segundos
 i 1 0 120
-;i 2 0 120
+i 2 0 120
 e
 </CsScore>
 </CsoundSynthesizer> 
