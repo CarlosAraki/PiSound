@@ -31,13 +31,10 @@ instr 1
     ifn = 1
     ;Toca com amplitude 30000 e frequência de gkFreq Hz a onda do seno
     ;armazenada na tabela 1.
-    a1 oscil kAmp, kFreq, ifn
   
-   ;Manda o som armazenado em a1 para a saida de audio 
-    if (kState == 1) then 
-        a1 oscil kAmp, kFreq, ifn
-        out a1
-    endif
+    ;Manda o som armazenado em a1 para a saida de audio 
+    a1 oscil kAmp, kFreq, ifn
+    out a1
 endin
 
 ;Instrumento #2.
@@ -63,12 +60,10 @@ instr 2
     ;Toca com amplitude 30000 e frequência de gkFreq Hz a onda do seno
     ;armazenada na tabela 1.
   
-   ;Manda o som armazenado em a1 para a saida de audio 
-    if (kState == 1) then 
-        a1 oscil kAmp, kFreq, ifn
-        out a1
-    endif
-endin
+    ;Manda o som armazenado em a1 para a saida de audio 
+    a1 oscil kAmp, kFreq, ifn
+    out a1
+endin 
 
 </CsInstruments>
 <CsScore>

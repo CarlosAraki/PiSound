@@ -53,8 +53,8 @@ typedef struct {
 }UserData;
 
 //Resolucao da camera
-const float FRAME_WIDTH = 176;
-const float FRAME_HEIGHT = 144;
+const float FRAME_WIDTH = 160;
+const float FRAME_HEIGHT = 120;
 //CameraObjects e instrumentos
 CameraObject obj1, obj2;        //Objetos capturados pela camera
 Instrument instr1, instr2;      //Instrumentos
@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
                     //TODO: Lidar com isso?
                     printf("Dados incompletos! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                 } else {
-                    //printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
+                    printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
                     instrumentUpdate(&instr1, &obj1);
                     instrumentUpdate(&instr2, &obj2);
@@ -349,7 +349,7 @@ void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
         obj2->y = 100*(bytes[13]-'0') + 10*(bytes[14]-'0') + (bytes[15] - '0');
         obj2->state = 1;
     }
-    //printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
+    printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
 }
 
 /* Imprime parametros do CameraObject */
@@ -384,6 +384,7 @@ void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     float a,b;
     if(instr->activated == 0) {
         instr->state = 0;
+        return;
     } else {
         instr->state = obj->state;
     }
@@ -436,6 +437,8 @@ void instrumentPrint(Instrument instr) {
     printf("Ativado: %d\n", instr.activated);
     printf("Estado: %d\n", instr.state);
     printf("Tipo: %d\n", instr.type);
+    printf("Frequencia: %.1f\n", instr.frequency);
+    printf("Amplitude: %.1f\n", instr.amplitude);
     printf("Intervalo de frequencias: %.1f-%.1f\n", instr.frequencyRange[0], instr.frequencyRange[1]);
     printf("Intervalo de amplitude: %.1f-%.1f\n", instr.amplitudeRange[0], instr.amplitudeRange[1]);
     printf("Volume mestre: %.1f\n\n", instr.masterVolume);
