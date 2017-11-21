@@ -37,7 +37,7 @@ instr 1
     out a1
 endin
 
-/*;Instrumento #2.
+;Instrumento #2.
 instr 2
     ;Estado do instrumento
     kState init 0
@@ -63,7 +63,7 @@ instr 2
     ;Manda o som armazenado em a1 para a saida de audio 
     a1 oscil kAmp, kFreq, ifn
     out a1
-endin*/ 
+endin 
 
 </CsInstruments>
 <CsScore>
@@ -71,7 +71,7 @@ endin*/
 f 1 0 16384 10 1
 ; Toca o instrumento #1 por 2 segundos, começando em 0 segundos
 i 1 0 120
-;i 2 0 120
+i 2 0 120
 e
 </CsScore>
 </CsoundSynthesizer> 

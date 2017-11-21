@@ -52,7 +52,7 @@ def mainLoop(fifoName,aLargura, aAltura):
     pool = ThreadPool(processes=4)
     largura = aLargura
     altura = aAltura
-    cam = cv2.VideoCapture(0)                        	
+    cam = cv2.VideoCapture(1)                        	
     cam.set(4,largura)
     cam.set(5,altura)
     fd = os.open(fifoName,os.O_WRONLY)				
@@ -67,7 +67,7 @@ def mainLoop(fifoName,aLargura, aAltura):
     nPontosAzul = 0
 
     while True:						
-            comeco = time.time()				
+            #comeco = time.time()				
 
             t1 = pool.apply_async(findGreenAndBlue, (frame, 0, largura/2, 0, altura/2))
             t2 = pool.apply_async(findGreenAndBlue, (frame, largura/2, largura, 0, altura/2))
@@ -81,7 +81,7 @@ def mainLoop(fifoName,aLargura, aAltura):
             nPontosVerde = retT1[2]+retT2[2]+retT3[2]+retT4[2]
             nPontosAzul = retT1[5]+retT2[5]+retT3[5]+retT4[5]
 
-            if nPontosVerde>5:
+            if nPontosVerde>2:
                 somaXVerde = retT1[0]+retT2[0]+retT3[0]+retT4[0]
                 somaYVerde = retT1[1]+retT2[1]+retT3[1]+retT4[1]
                 xVerde = somaXVerde/nPontosVerde
@@ -90,7 +90,7 @@ def mainLoop(fifoName,aLargura, aAltura):
                 xVerde = -1
                 yVerde = -1
                 
-            if nPontosAzul>5:
+            if nPontosAzul>2:
                 somaXAzul = retT1[3]+retT2[3]+retT3[3]+retT4[3]
                 somaYAzul = retT1[4]+retT2[4]+retT3[4]+retT4[4]
                 xAzul = somaXAzul/nPontosAzul
@@ -99,11 +99,11 @@ def mainLoop(fifoName,aLargura, aAltura):
                 xAzul = -1
                 yAzul = -1
                 
-            print xVerde, yVerde, xAzul, yAzul
+            #print xVerde, yVerde, xAzul, yAzul
 
             arq =("%s %s %s %s "%(conv3Dig(xVerde),conv3Dig(yVerde),conv3Dig(xAzul),conv3Dig(yAzul)))
             os.write(fd,arq)
-            fim = time.time()				#para verificar tempo final
-            tempo  = fim - comeco				
-            print tempo
+            #fim = time.time()				#para verificar tempo final
+            #tempo  = fim - comeco				
+            #print tempo
 							

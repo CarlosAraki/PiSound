@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 
     //Obtem ponteiros para comunicacao com o Csound
     instrumentGetPointers(&instr1, ud);
-    //instrumentGetPointers(&instr2, ud);
+    instrumentGetPointers(&instr2, ud);
 
     //Caso a compilacao ocorreu com sucesso, cria um novo thread para rodar a aplicacao
     if(!ud->result) {
@@ -197,12 +197,12 @@ int main(int argc, char** argv) {
                     //TODO: Lidar com isso?
                     printf("Dados incompletos! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                 } else {
-                    printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
+                    //printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
                     instrumentUpdate(&instr1, &obj1);
-                    //instrumentUpdate(&instr2, &obj2);
+                    instrumentUpdate(&instr2, &obj2);
                     instrumentWriteToCSound(instr1);
-                    //instrumentWriteToCSound(instr2);
+                    instrumentWriteToCSound(instr2);
                 }
             }
         }
@@ -345,11 +345,11 @@ void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
         obj2->y = -1;
         obj2->state = 0;
     } else {
-        obj2->x = 100*(bytes[9]-'0') + 10*(bytes[10]-'0') + (bytes[11] - '0');
-        obj2->y = 100*(bytes[13]-'0') + 10*(bytes[14]-'0') + (bytes[15] - '0');
+        obj2->x = 100*(bytes[8]-'0') + 10*(bytes[9]-'0') + (bytes[10] - '0');
+        obj2->y = 100*(bytes[12]-'0') + 10*(bytes[13]-'0') + (bytes[14] - '0');
         obj2->state = 1;
     }
-    printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
+    //printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
 }
 
 /* Imprime parametros do CameraObject */
@@ -386,9 +386,16 @@ void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     float a,b;
     if(instr->activated == 0) {
         instr->state = 0;
+        instr->amplitude = 0;
+        instr->frequency = 0;
         return;
     } else {
         instr->state = obj->state;
+    }
+    if(instr->state = 0) {
+        instr->amplitude = 0;
+        instr->frequency = 0;
+        return;
     }
     a = instr->frequencyRange[0];
     b = log(instr->frequencyRange[1]/instr->frequencyRange[0])/FRAME_WIDTH;
