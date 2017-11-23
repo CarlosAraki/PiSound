@@ -384,6 +384,7 @@ void instrumentInitialize(Instrument* instr) {
 /* Atualiza um instrumento baseado num CameraObject */
 void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     float a,b;
+    float ampl = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(obj->y/FRAME_HEIGHT)*(instr->masterVolume)*MASTER_VOLUME; 
     if(instr->activated == 0) {
         instr->state = 0;
         instr->amplitude = 0;
@@ -400,7 +401,8 @@ void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     a = instr->frequencyRange[0];
     b = log(instr->frequencyRange[1]/instr->frequencyRange[0])/FRAME_WIDTH;
     instr->frequency = a*exp(b*obj->x);
-    instr->amplitude = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(obj->y/FRAME_HEIGHT)*(instr->masterVolume)*MASTER_VOLUME;
+    if(ampl >= 0) instr->amplitude = ampl;
+    else instr->amplitude = 0;
     //printf("Frequencia: %f, amplitude: %f", instr->frequency, instr->amplitude);
 }
 

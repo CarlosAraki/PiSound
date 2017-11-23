@@ -1,4 +1,4 @@
-import cv2
+import cv2 
 import numpy as np
 import time
 import  sys						#para  argumentos
@@ -22,11 +22,11 @@ def findGreenAndBlue(frame, xInicial, xFinal, yInicial, yFinal):
             difGrRe = int(pixel[1]) - int(pixel[0])
             difGrBl = int(pixel[1]) - int(pixel[2])
             difReBl = int(pixel[0]) - int(pixel[2])
-            if difGrRe > 20 and difGrBl > 20:
+            if difGrRe > 100 and difGrBl > 100 and pixel[1] > 100:
                 somaXVerde = somaXVerde + i
                 somaYVerde = somaYVerde + j
                 nPontosVerde = nPontosVerde + 1
-            if difGrBl < -20 and difReBl < -20:
+            if difGrBl < -100 and difReBl < -100 and pixel[2] > 100:
                 somaXAzul = somaXAzul + i
                 somaYAzul = somaYAzul + j
                 nPontosAzul = nPontosAzul + 1
@@ -55,6 +55,9 @@ def mainLoop(fifoName,aLargura, aAltura):
     cam = cv2.VideoCapture(1)                        	
     cam.set(4,largura)
     cam.set(5,altura)
+    #cam.set(cv2.CAP_PROP_CONTRAST, 255)
+    #cam.set(cv2.CAP_PROP_SATURATION, 255)
+    #cam.set(cv2.CAP_PROP_HUE, 127)
     fd = os.open(fifoName,os.O_WRONLY)				
     ret, frame = cam.read()			       
 
@@ -67,6 +70,13 @@ def mainLoop(fifoName,aLargura, aAltura):
     nPontosAzul = 0
 
     while True:						
+            somaXVerde = 0
+            somaYVerde = 0
+            nPontosVerde = 0
+            somaXAzul = 0
+            somaYAzul = 0
+            nPontosAzul = 0
+            
             #comeco = time.time()				
 
             t1 = pool.apply_async(findGreenAndBlue, (frame, 0, largura/2, 0, altura/2))
@@ -99,7 +109,7 @@ def mainLoop(fifoName,aLargura, aAltura):
                 xAzul = -1
                 yAzul = -1
                 
-            #print xVerde, yVerde, xAzul, yAzul
+            print xVerde, yVerde, nPontosVerde, xAzul, yAzul, nPontosAzul
 
             arq =("%s %s %s %s "%(conv3Dig(xVerde),conv3Dig(yVerde),conv3Dig(xAzul),conv3Dig(yAzul)))
             os.write(fd,arq)
