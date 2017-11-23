@@ -155,6 +155,7 @@ int main(int argc, char** argv) {
     
     /* Loop Principal */
 
+    instr1.activated = 1
     //Abre a FIFO
     fifoFD = open(fifoName, O_RDONLY);
     int bytes;
@@ -384,7 +385,7 @@ void instrumentInitialize(Instrument* instr) {
 /* Atualiza um instrumento baseado num CameraObject */
 void instrumentUpdate(Instrument* instr, CameraObject* obj) {
     float a,b;
-    float ampl = (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(obj->y/FRAME_HEIGHT)*(instr->masterVolume)*MASTER_VOLUME; 
+    float ampl = (instr1->amplitudeRange[0] + (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(1-obj->y/FRAME_HEIGHT))*(instr->masterVolume)*MASTER_VOLUME; 
     if(instr->activated == 0) {
         instr->state = 0;
         instr->amplitude = 0;
