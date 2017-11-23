@@ -41,6 +41,9 @@ typedef struct {
     float amplitude;            //Amplitude
     float amplitudeRange[2];    //Faixa de possiveis amplitudes
     float masterVolume;         //Volume mestre do instrumento
+    int discrete;               //0 - Notas continuas, 1 - Notas discretas
+    int numOfNotes;             //Numero de notas discretas
+    double nRoot;                //Numero a ser potenciado para gerar notas discretas
     int numOfChannels;          //Numero de canais de comunicacao
     MYFLT* chnPointers[4];      //Ponteiros para comunicacao com CSound 
 }Instrument;
@@ -53,8 +56,8 @@ typedef struct {
 }UserData;
 
 //Resolucao da camera
-const float FRAME_WIDTH = 160;
-const float FRAME_HEIGHT = 120;
+const float FRAME_WIDTH = 640;
+const float FRAME_HEIGHT = 480;
 //CameraObjects e instrumentos
 CameraObject obj1, obj2;        //Objetos capturados pela camera
 Instrument instr1, instr2;      //Instrumentos
@@ -142,7 +145,7 @@ int main(int argc, char** argv) {
 
     //Obtem ponteiros para comunicacao com o Csound
     instrumentGetPointers(&instr1, ud);
-    instrumentGetPointers(&instr2, ud);
+    //instrumentGetPointers(&instr2, ud);
 
     //Caso a compilacao ocorreu com sucesso, cria um novo thread para rodar a aplicacao
     if(!ud->result) {
@@ -155,7 +158,8 @@ int main(int argc, char** argv) {
     
     /* Loop Principal */
 
-    instr1.activated = 1
+    //instr1.activated = 1;
+    //instr2.activated = 1;
     //Abre a FIFO
     fifoFD = open(fifoName, O_RDONLY);
     int bytes;
@@ -201,9 +205,9 @@ int main(int argc, char** argv) {
                     //printf("Dados show! %d bytes lidos. Foi lido \"%s\"\n", bytes, readBuffer);
                     camObjUpdate(&obj1, &obj2, readBuffer);
                     instrumentUpdate(&instr1, &obj1);
-                    instrumentUpdate(&instr2, &obj2);
+                    //instrumentUpdate(&instr2, &obj2);
                     instrumentWriteToCSound(instr1);
-                    instrumentWriteToCSound(instr2);
+                    //instrumentWriteToCSound(instr2);
                 }
             }
         }
@@ -350,7 +354,7 @@ void camObjUpdate(CameraObject* obj1, CameraObject* obj2, char* bytes) {
         obj2->y = 100*(bytes[12]-'0') + 10*(bytes[13]-'0') + (bytes[14] - '0');
         obj2->state = 1;
     }
-    //printf("Objeto 1: %f %f, Objeto 2: %f %f\n", obj1->x, obj1->y, obj2->x, obj2->y);
+    //printf("Objeto 1: %d %f %f, Objeto 2: %d %f %f\n", obj1->state, obj1->x, obj1->y, obj2->state, obj2->x, obj2->y);
 }
 
 /* Imprime parametros do CameraObject */
@@ -373,10 +377,13 @@ void instrumentInitialize(Instrument* instr) {
     instr->type = 0;
     instr->frequency = 0;
     instr->amplitude = 0;
-    instr->frequencyRange[0] = 300;
-    instr->frequencyRange[1] = 600;
-    instr->amplitudeRange[0] = 0;
-    instr->amplitudeRange[1] = 30000;
+    instr->frequencyRange[0] = 880;
+    instr->frequencyRange[1] = 1760;
+    instr->amplitudeRange[0] = 15000;
+    instr->amplitudeRange[1] = 50000;
+    instr->discrete = 0;
+    //instr->numOfNotes = 12;
+    //instr->nRoot = pow(instr->frequencyRange[1]-instr->frequencyRange[2], 1/12);
     instr->masterVolume = 1;
     instr->numOfChannels = sizeof(instrumentChannels)/sizeof(*instrumentChannels);
     instrNumber++;
@@ -384,8 +391,8 @@ void instrumentInitialize(Instrument* instr) {
 
 /* Atualiza um instrumento baseado num CameraObject */
 void instrumentUpdate(Instrument* instr, CameraObject* obj) {
-    float a,b;
-    float ampl = (instr1->amplitudeRange[0] + (instr->amplitudeRange[1]-instr->amplitudeRange[0])*(1-obj->y/FRAME_HEIGHT))*(instr->masterVolume)*MASTER_VOLUME; 
+    float a,b,widthCompl,heightCompl;
+    float ampl;
     if(instr->activated == 0) {
         instr->state = 0;
         instr->amplitude = 0;
@@ -393,18 +400,29 @@ void instrumentUpdate(Instrument* instr, CameraObject* obj) {
         return;
     } else {
         instr->state = obj->state;
+        //printf("instrState %d objState %d\n", instr->state, obj->state);
     }
-    if(instr->state = 0) {
+    if(instr->state == 0) {
         instr->amplitude = 0;
         instr->frequency = 0;
         return;
     }
-    a = instr->frequencyRange[0];
-    b = log(instr->frequencyRange[1]/instr->frequencyRange[0])/FRAME_WIDTH;
-    instr->frequency = a*exp(b*obj->x);
-    if(ampl >= 0) instr->amplitude = ampl;
-    else instr->amplitude = 0;
-    //printf("Frequencia: %f, amplitude: %f", instr->frequency, instr->amplitude);
+    //Calculo da frequencia
+    widthCompl = FRAME_WIDTH-obj->x;
+    if(!instr->discrete) {
+        a = instr->frequencyRange[0];
+        b = log(instr->frequencyRange[1]/instr->frequencyRange[0])/FRAME_WIDTH;
+        instr->frequency = a*exp(b*widthCompl);
+    } 
+    else {
+        instr->frequency = instr->frequencyRange[0]*pow(instr->nRoot, (instr->numOfNotes)*round(widthCompl/FRAME_WIDTH));
+    }
+    //Calculo da amplitude
+    heightCompl = FRAME_HEIGHT-obj->y;
+    a = instr->amplitudeRange[0];
+    b = log(instr->amplitudeRange[1]/instr->amplitudeRange[0])/FRAME_HEIGHT;
+    instr->amplitude = a*exp(b*heightCompl);
+    //printf("Instr %d: Estado: %d Frequencia: %f, amplitude: %f\n", instr->number, instr->state, instr->frequency, instr->amplitude);
 }
 
 /* Obtem ponteiros para comunicacao com CSound e os armazena
@@ -481,6 +499,13 @@ void handleSetInstrPF(char* instr, char* param, float val) {
     }
     else if(!strcmp(param, "type")) {
         instrument->type = (int)val;
+    }
+    else if(!strcmp(param, "discrete")) {
+        instrument->discrete = (int)val;
+    }
+    else if(!strcmp(param, "numnotes")) {
+        instrument->numOfNotes = (int)val;
+        instrument->nRoot = pow(instrument->frequencyRange[1]-instrument->frequencyRange[0], 1/instrument->numOfNotes);
     }
     else {
         printf("Comando nao reconhecido! Sintaxe: set instr[1-2] [state|type|mvolume] [0-1]\n");

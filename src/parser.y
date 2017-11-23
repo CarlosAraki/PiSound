@@ -26,8 +26,8 @@ line:           NL {return 0;}
                 | exitCommand NL  {return 0;}
 
 setCommand:     SET INSTR PARAM NUM NUM     {handleSetInstrPFF($2, $3, $4, $5);}
-                | SET INSTR PARAM NUM       {handleSetInstrPF($2, $3, $4);}
                 | SET PARAM NUM             {handleSetPF($2, $3);}
+                | SET INSTR PARAM NUM       {handleSetInstrPF($2, $3, $4);}
 
 printCommand:   PRINT PARAM          {handlePrintP($2);}
                 | PRINT INSTR        {handlePrintInstr($2);}

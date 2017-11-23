@@ -11,7 +11,7 @@ def findGreen(frameHSV, lowerGreen, upperGreen):
 
     maskGreen = cv2.inRange(frameHSV, lowerGreen, upperGreen)
     numOfGreen = cv2.countNonZero(maskGreen)
-    if numOfGreen > 1000:
+    if numOfGreen > 400:
         momentsGreen = cv2.moments(maskGreen)
         if(momentsGreen["m00"] != 0):
                 greenX = int(momentsGreen["m10"]/momentsGreen["m00"])
@@ -27,7 +27,7 @@ def findBlue(frameHSV, lowerBlue, upperBlue):
 
     maskBlue = cv2.inRange(frameHSV, lowerBlue, upperBlue)
     numOfBlue = cv2.countNonZero(maskBlue)
-    if numOfBlue > 1000:
+    if numOfBlue > 1200:
         momentsBlue = cv2.moments(maskBlue)
         if(momentsBlue["m00"] != 0):
                 blueX = int(momentsBlue["m10"]/momentsBlue["m00"])
@@ -53,10 +53,10 @@ def conv3Dig(number):
     return numString
 
 def mainLoop(fifoName, width, height):
-    pool = ThreadPool(processes=2)
-    cap = cv2.VideoCapture(1)                        	
-    cap.set(4,width)
-    cap.set(5,height)
+    pool = ThreadPool(processes=1)
+    cap = cv2.VideoCapture(0)                        	
+    #cap.set(4,width)
+    #cap.set(5,height)
     fd = os.open(fifoName,os.O_WRONLY)	
     
     lowerGreen = np.array([33,80,40])
@@ -74,7 +74,8 @@ def mainLoop(fifoName, width, height):
 
 
             retT1 = t1.get()
-            retT2 = t2.get()
+            #retT2 = t2.get()
+            retT2 = [-1,-1]
 
             #print retT1[0], retT1[1], retT2[0], retT2[1]
 
