@@ -57,7 +57,7 @@ instr 2
 
     ;Número da f-table.
     ifn = 1
-    ;Toca com amplitude 30000 e frequência de gkFreq Hz a onda do seno
+    ;toca com aplitude kAmp e frequencia kFreq Hz a onda do seno
     ;armazenada na tabela 1.
   
     ;Manda o som armazenado em a1 para a saida de audio 
